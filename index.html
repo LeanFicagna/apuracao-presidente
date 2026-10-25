@@ -183,8 +183,14 @@ td.r, th.r { text-align: right; }
 .lider::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--c); }
 .vazio { color: var(--muted); }
 
-.visitas { margin-top: -12px; font-size: 14px; color: var(--muted); }
-.visitas strong { color: var(--ink); font-weight: 600; }
+.visitas {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px;
+  background: var(--ink); color: var(--bg);
+  padding: 12px 18px; border-radius: 6px;
+  font: 600 clamp(16px, 3.4vw, 20px)/1.2 var(--font-body);
+}
+.visitas strong { font: 700 clamp(40px, 9vw, 60px)/1 var(--font-display); letter-spacing: -.01em; }
+.visitas[hidden] { display: none; }
 .aviso {
   background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--wait);
   padding: 12px 16px; border-radius: 4px; font-size: 14px;
