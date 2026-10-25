@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Apuração Presidente 2026</title>
+<title>Apuração Presidente 2026 · 2º Turno</title>
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-7733665199199263" crossorigin="anonymous"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,8 +17,10 @@
   --muted: #62645f;
   --line: #d9d5c8;
   --track: #e6e2d6;
-  --cand-a: #1f5f8b;
-  --cand-b: #c27410;
+  --lula: #d0242a;        /* vermelho, barras e fundos */
+  --lula-ink: #b51f24;    /* vermelho para texto */
+  --flavio: #f2c200;      /* amarelo, barras e fundos */
+  --flavio-ink: #8f6c00;  /* amarelo escurecido para texto legível no fundo claro */
   --neutral-bar: #8e8b80;
   --live: #1e8a3e;        /* tecla CONFIRMA */
   --wait: #b5651d;        /* tecla CORRIGE */
@@ -31,14 +33,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #15171a; --surface: #1d2024; --ink: #ecebe6; --muted: #a2a39d;
-    --line: #33373c; --track: #2a2e33; --cand-a: #5ea3d6; --cand-b: #e39a3b;
+    --line: #33373c; --track: #2a2e33; --lula: #e0393e; --lula-ink: #f26a6e; --flavio: #f5c518; --flavio-ink: #f5c518;
     --neutral-bar: #6f7176; --live: #46b968; --wait: #e08b44; --error: #f2817a;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #15171a; --surface: #1d2024; --ink: #ecebe6; --muted: #a2a39d;
-  --line: #33373c; --track: #2a2e33; --cand-a: #5ea3d6; --cand-b: #e39a3b;
+  --line: #33373c; --track: #2a2e33; --lula: #e0393e; --lula-ink: #f26a6e; --flavio: #f5c518; --flavio-ink: #f5c518;
   --neutral-bar: #6f7176; --live: #46b968; --wait: #e08b44; --error: #f2817a;
   color-scheme: dark;
 }
@@ -88,7 +90,7 @@ h1 small { display: block; font: 500 14px/1.4 var(--font-body); color: var(--mut
   cursor: pointer;
 }
 .turnos button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-.turnos button:focus-visible, .sort:focus-visible { outline: 2px solid var(--cand-a); outline-offset: 2px; }
+.turnos button:focus-visible, .sort:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 .status {
   display: inline-flex; align-items: center; gap: 8px;
   font: 600 13px var(--font-body);
@@ -132,7 +134,7 @@ h1 small { display: block; font: 500 14px/1.4 var(--font-body); color: var(--mut
 .cand-info { min-width: 0; display: grid; gap: 2px; }
 .cand-num { font: 500 13px var(--font-mono); color: var(--muted); }
 .cand-nome { font: 700 clamp(20px, 3.4vw, 30px)/1.05 var(--font-display); text-transform: uppercase; overflow-wrap: anywhere; }
-.cand-pct { font: 700 clamp(44px, 9vw, 76px)/0.95 var(--font-display); color: var(--c); }
+.cand-pct { font: 700 clamp(44px, 9vw, 76px)/0.95 var(--font-display); color: var(--c-ink, var(--c)); }
 .cand-votos { font-size: 14px; color: var(--muted); }
 .cand-vice { font-size: 12px; color: var(--muted); }
 .cabo { position: relative; height: 34px; display: flex; border-radius: 3px; overflow: hidden; background: var(--track); }
@@ -205,7 +207,7 @@ footer a { color: inherit; }
 <body>
 <div class="wrap">
   <header>
-    <h1>Apuração Presidente 2026
+    <h1>Apuração Presidente 2026 · <span id="titulo-turno">2º Turno</span>
       <small>Eleições gerais · dados oficiais do Tribunal Superior Eleitoral</small>
     </h1>
     <div class="controls">
@@ -345,17 +347,15 @@ function interpretar(d) {
   };
 }
 
-function corDe(posicao) {
-  if (posicao === 0) return "var(--cand-a)";
-  if (posicao === 1) return "var(--cand-b)";
-  return "var(--neutral-bar)";
-}
-// No 2º turno a cor acompanha o candidato (número), não a posição, para não trocar quando um ultrapassa o outro.
+// Cor fixa por número de candidato: Lula (13) vermelho, Flávio (22) amarelo. Os demais ficam em cinza.
+const CORES_CANDIDATO = {
+  "13": { fill: "var(--lula)", ink: "var(--lula-ink)" },
+  "22": { fill: "var(--flavio)", ink: "var(--flavio-ink)" }
+};
+const COR_NEUTRA = { fill: "var(--neutral-bar)", ink: "var(--ink)" };
 function mapaCores(dados) {
-  const ordem = [...dados.candidatos];
-  if (turno === 2) ordem.sort((a, b) => a.numero.localeCompare(b.numero));
   const mapa = {};
-  ordem.forEach((c, i) => { mapa[c.numero] = corDe(i); });
+  for (const c of dados.candidatos) mapa[c.numero] = CORES_CANDIDATO[c.numero] ?? COR_NEUTRA;
   return mapa;
 }
 
@@ -363,7 +363,7 @@ function iniciais(nome) {
   return nome.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("");
 }
 function fotoHtml(c, cor) {
-  return `<div class="foto" style="--c:${cor}"><img src="${urlFoto(c.sq, ELEICOES[turno])}" alt="Foto de ${c.nome}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${iniciais(c.nome)}'))"></div>`;
+  return `<div class="foto" style="--c:${cor.fill}"><img src="${urlFoto(c.sq, ELEICOES[turno])}" alt="Foto de ${c.nome}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${iniciais(c.nome)}'))"></div>`;
 }
 
 function renderNacional() {
@@ -400,8 +400,8 @@ function renderNacional() {
           ${cartao(b, cores[b.numero], "b")}
         </div>
         <div class="cabo" role="img" aria-label="${a.nome} ${pct(a.pct)}, ${b.nome} ${pct(b.pct)}">
-          <i style="width:${larguraA}%;background:${cores[a.numero]}"></i>
-          <i style="width:${100 - larguraA}%;background:${cores[b.numero]};${d.validos ? "" : "opacity:.35"}"></i>
+          <i style="width:${larguraA}%;background:${cores[a.numero].fill}"></i>
+          <i style="width:${100 - larguraA}%;background:${cores[b.numero].fill};${d.validos ? "" : "opacity:.35"}"></i>
           <span class="meio"></span>
         </div>
         <div class="cabo-legenda">
@@ -411,7 +411,7 @@ function renderNacional() {
       </div>`;
   } else {
     placar.innerHTML = `<div class="ranking">${d.candidatos.map((c) => `
-      <div class="linha" style="--c:${cores[c.numero]}">
+      <div class="linha" style="--c:${cores[c.numero].fill}">
         ${fotoHtml(c, cores[c.numero])}
         <div class="linha-nome">${c.nome}<small>${c.numero} · ${c.partido}</small>${situacaoChip(c)}</div>
         <div class="linha-pct num">${pct(c.pct)}</div>
@@ -429,7 +429,7 @@ function situacaoChip(c) {
 
 function cartao(c, cor, lado) {
   return `
-    <div class="cand ${lado}" style="--c:${cor}">
+    <div class="cand ${lado}" style="--c:${cor.fill};--c-ink:${cor.ink}">
       ${fotoHtml(c, cor)}
       <div class="cand-info">
         <span class="cand-num">${c.numero} · ${c.partido}</span>
@@ -463,14 +463,14 @@ function renderEstados() {
     const fatias = destaque.map((n) => {
       const p = porNumero[n]?.pct ?? 0;
       resto -= p;
-      return `<i style="width:${p}%;background:${cores[n]}" title="${porNumero[n]?.nome ?? ""} ${pct(p)}"></i>`;
+      return `<i style="width:${p}%;background:${cores[n].fill}" title="${porNumero[n]?.nome ?? ""} ${pct(p)}"></i>`;
     }).join("") + (turno === 1 && d.validos ? `<i style="width:${Math.max(resto, 0)}%;background:var(--neutral-bar)" title="Demais candidatos"></i>` : "");
     const lider = d.validos ? d.candidatos[0] : null;
     return `<tr>
       <td class="uf">${uf.toUpperCase()}<small>${nome}</small></td>
       <td class="r num">${pct(d.pctSecoes)}</td>
       <td><div class="mini">${fatias}</div></td>
-      <td>${lider ? `<span class="lider" style="--c:${cores[lider.numero]}">${lider.nome} <span class="num meta">${pct(lider.pct)}</span></span>` : '<span class="vazio">–</span>'}</td>
+      <td>${lider ? `<span class="lider" style="--c:${cores[lider.numero].fill}">${lider.nome} <span class="num meta">${pct(lider.pct)}</span></span>` : '<span class="vazio">–</span>'}</td>
     </tr>`;
   }).join("");
 }
@@ -521,6 +521,8 @@ function trocarTurno(novo) {
   estados = {};
   ciclo = 0;
   document.querySelectorAll(".turnos button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.turno) === turno)));
+  $("titulo-turno").textContent = `${turno}º Turno`;
+  document.title = `Apuração Presidente 2026 · ${turno}º Turno`;
   $("placar").innerHTML = "";
   $("estados").innerHTML = '<tr><td colspan="4" class="vazio">Carregando estados…</td></tr>';
   $("status").className = "status wait";
