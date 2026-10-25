@@ -194,6 +194,12 @@ td.r, th.r { text-align: right; }
 }
 .visitas strong { font: 700 24px/1 var(--font-display); }
 .visitas[hidden] { display: none; }
+
+/* Banner de anúncio (FS Consultoria Rural) */
+.banner { display: block; max-width: 970px; width: 100%; justify-self: center; border-radius: 6px; overflow: hidden; transition: filter .15s; }
+.banner img { display: block; width: 100%; height: auto; }
+.banner:hover { filter: brightness(1.07); }
+.banner:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
 .aviso {
   background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--wait);
   padding: 12px 16px; border-radius: 4px; font-size: 14px;
@@ -247,6 +253,13 @@ footer a { color: inherit; }
   </section>
 
   <section id="placar" aria-live="polite"></section>
+
+  <a class="banner" href="https://wa.me/5593992400825?text=Ol%C3%A1%21%20Vi%20o%20an%C3%BAncio%20de%20cr%C3%A9dito%20rural%20no%20site%20de%20apura%C3%A7%C3%A3o%20e%20gostaria%20de%20falar%20com%20a%20FS%20Consultoria%20Rural." target="_blank" rel="noopener sponsored" aria-label="Anúncio: crédito rural com a FS Consultoria Rural. Falar no WhatsApp">
+    <picture>
+      <source media="(max-width: 640px)" srcset="banner-credito-rural-mobile.svg" width="600" height="440">
+      <img src="banner-credito-rural.svg" width="970" height="250" alt="Precisando de crédito para ampliar a produção? A FS Consultoria Rural cuida do projeto até a liberação. Falar no WhatsApp (93) 99240-0825.">
+    </picture>
+  </a>
 
   <section class="numeros" aria-label="Comparecimento e votos">
     <div><span class="label">Comparecimento</span><b class="num" id="n-comp">–</b><span class="meta num" id="n-comp-p"></span></div>
