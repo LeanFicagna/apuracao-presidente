@@ -210,7 +210,10 @@ td.r, th.r { text-align: right; }
 }
 
 /* Banner de anúncio (FS Consultoria Rural) */
-.banner { display: block; max-width: 970px; width: 100%; justify-self: center; border-radius: 6px; overflow: hidden; transition: filter .15s; }
+.banners { display: grid; max-width: 970px; width: 100%; justify-self: center; }
+.banners .banner { grid-area: 1 / 1; opacity: 0; visibility: hidden; transition: opacity .4s, visibility .4s; }
+.banners .banner.ativo { opacity: 1; visibility: visible; }
+.banner { display: block; border-radius: 6px; overflow: hidden; }
 .banner img { display: block; width: 100%; height: auto; }
 .banner:hover { filter: brightness(1.07); }
 .banner:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
@@ -273,12 +276,20 @@ footer a { color: inherit; }
 
   <section id="placar" aria-live="polite"></section>
 
-  <a class="banner" href="https://wa.me/5593992400825?text=Ol%C3%A1%21%20Vi%20o%20an%C3%BAncio%20de%20cr%C3%A9dito%20rural%20no%20site%20de%20apura%C3%A7%C3%A3o%20e%20gostaria%20de%20falar%20com%20a%20FS%20Consultoria%20Rural." target="_blank" rel="noopener sponsored" aria-label="Anúncio: crédito rural com a FS Consultoria Rural. Falar no WhatsApp">
-    <picture>
-      <source media="(max-width: 640px)" srcset="banner-credito-rural-mobile.svg" width="600" height="440">
-      <img src="banner-credito-rural.svg" width="970" height="250" alt="Precisando de crédito para ampliar a produção? A FS Consultoria Rural cuida do projeto até a liberação. Falar no WhatsApp (93) 99240-0825.">
-    </picture>
-  </a>
+  <div class="banners" id="banners" aria-label="Anúncios">
+    <a class="banner ativo" href="https://wa.me/5593992400825?text=Ol%C3%A1%21%20Vi%20o%20an%C3%BAncio%20de%20cr%C3%A9dito%20rural%20no%20site%20de%20apura%C3%A7%C3%A3o%20e%20gostaria%20de%20falar%20com%20a%20FS%20Consultoria%20Rural." target="_blank" rel="noopener sponsored" aria-label="Anúncio: crédito rural com a FS Consultoria Rural. Falar no WhatsApp">
+      <picture>
+        <source media="(max-width: 640px)" srcset="banner-credito-rural-mobile.svg" width="600" height="440">
+        <img src="banner-credito-rural.svg" width="970" height="250" alt="Precisando de crédito para ampliar a produção? A FS Consultoria Rural cuida do projeto até a liberação. Falar no WhatsApp (93) 99240-0825.">
+      </picture>
+    </a>
+    <a class="banner" href="https://wa.me/5593992158539?text=Ol%C3%A1%21%20Vi%20o%20seu%20an%C3%BAncio%20no%20site%20de%20apura%C3%A7%C3%A3o%20e%20quero%20desenvolver%20uma%20aplica%C3%A7%C3%A3o%20para%20a%20minha%20empresa." target="_blank" rel="noopener sponsored" aria-label="Anúncio: desenvolvimento de aplicações empresariais. Falar no WhatsApp" aria-hidden="true" tabindex="-1">
+      <picture>
+        <source media="(max-width: 640px)" srcset="banner-desenvolvimento-mobile.svg" width="600" height="440">
+        <img src="banner-desenvolvimento.svg" width="970" height="250" alt="Desenvolva sua aplicação empresarial sob medida. Sistemas, apps e sites feitos para o seu negócio. Falar no WhatsApp (93) 99215-8539.">
+      </picture>
+    </a>
+  </div>
 
   <section class="numeros" aria-label="Comparecimento e votos">
     <div><span class="label">Comparecimento</span><b class="num" id="n-comp">–</b><span class="meta num" id="n-comp-p"></span></div>
@@ -598,10 +609,42 @@ async function contarVisita() {
   } catch {}
 }
 
+// Banners alternam: FS Consultoria Rural por 8s, desenvolvimento por 3s.
+// A troca fica parada enquanto o ponteiro ou o foco estiver sobre o banner, para o clique não cair no outro.
+const DURACAO_BANNER_MS = [8000, 3000];
+function alternarBanners() {
+  const area = $("banners");
+  const itens = [...area.querySelectorAll(".banner")];
+  if (itens.length < 2) return;
+  let atual = 0;
+  let parado = false;
+  const mostrar = (n) => {
+    itens.forEach((el, k) => {
+      const ativo = k === n;
+      el.classList.toggle("ativo", ativo);
+      el.setAttribute("aria-hidden", String(!ativo));
+      el.tabIndex = ativo ? 0 : -1;
+    });
+    atual = n;
+  };
+  const agendar = () => {
+    setTimeout(() => {
+      if (!parado) mostrar((atual + 1) % itens.length);
+      agendar();
+    }, DURACAO_BANNER_MS[atual % DURACAO_BANNER_MS.length]);
+  };
+  area.addEventListener("mouseenter", () => { parado = true; });
+  area.addEventListener("mouseleave", () => { parado = false; });
+  area.addEventListener("focusin", () => { parado = true; });
+  area.addEventListener("focusout", () => { parado = false; });
+  agendar();
+}
+
 document.querySelectorAll(".turnos button").forEach((b) => b.addEventListener("click", () => trocarTurno(Number(b.dataset.turno))));
 $("ordem").addEventListener("change", renderEstados);
 atualizar();
 contarVisita();
+alternarBanners();
 </script>
 </body>
 </html>
