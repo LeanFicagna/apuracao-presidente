@@ -183,6 +183,8 @@ td.r, th.r { text-align: right; }
 .lider::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--c); }
 .vazio { color: var(--muted); }
 
+.visitas { margin-top: -12px; font-size: 14px; color: var(--muted); }
+.visitas strong { color: var(--ink); font-weight: 600; }
 .aviso {
   background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--wait);
   padding: 12px 16px; border-radius: 4px; font-size: 14px;
@@ -218,6 +220,8 @@ footer a { color: inherit; }
       <span id="status" class="status wait">Carregando</span>
     </div>
   </header>
+
+  <div id="visitas" class="visitas num" hidden></div>
 
   <div id="aviso" class="aviso" hidden></div>
 
@@ -263,9 +267,7 @@ footer a { color: inherit; }
 
   <footer>
     <span>Este site só exibe a apuração. A contagem e a totalização são feitas pela Justiça Eleitoral; os números vêm dos arquivos públicos do <a href="https://resultados.tse.jus.br/oficial/app/index.html" target="_blank" rel="noopener">Sistema Resultados do TSE</a>.</span>
-    <span>Percentuais calculados sobre os votos válidos, como faz o TSE. Atualiza sozinho a cada 15 segundos.</span>
-    <span id="visitas" class="num" hidden></span>
-  </footer>
+    <span>Percentuais calculados sobre os votos válidos, como faz o TSE. Atualiza sozinho a cada 15 segundos.</span>  </footer>
 </div>
 
 <script>
@@ -542,7 +544,9 @@ async function contarVisita() {
     const resp = await fetch(`${URL_CONTADOR}?acao=${nova ? "somar" : "ler"}`);
     const dados = await resp.json();
     if (typeof dados.total !== "number") return;
-    $("visitas").textContent = `${inteiro.format(dados.total)} ${dados.total === 1 ? "visualização" : "visualizações"}`;
+    $("visitas").innerHTML = dados.total === 1
+      ? "<strong>1</strong> pessoa viu esta página"
+      : `<strong>${inteiro.format(dados.total)}</strong> pessoas viram esta página`;
     $("visitas").hidden = false;
     if (nova) { try { sessionStorage.setItem("visita-contada", "1"); } catch {} }
   } catch {}
