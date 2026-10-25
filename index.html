@@ -593,10 +593,22 @@ function trocarTurno(novo) {
 // Contador de visualizações: um Google Apps Script ligado a uma planilha soma +1 numa célula.
 // Enquanto o endereço estiver vazio, o contador fica escondido.
 const URL_CONTADOR = "https://script.google.com/macros/s/AKfycbwHoSP9WHY19a1Xoi6oi19XuTaQhayuyLETOLSXS4Gm29_cAB35UBUzhuoB2dm1uB3GjQ/exec";
+// A mesma pessoa só é somada de novo depois de 24h. O localStorage sobrevive ao fechamento da aba;
+// se o navegador o bloquear, cai para o sessionStorage (uma contagem por aba).
+const CHAVE_VISITA = "visita-contada-em";
+const JANELA_VISITA_MS = 24 * 60 * 60 * 1000;
+function visitaJaContada() {
+  try { return Date.now() - Number(localStorage.getItem(CHAVE_VISITA) || 0) < JANELA_VISITA_MS; } catch {}
+  try { return Boolean(sessionStorage.getItem(CHAVE_VISITA)); } catch {}
+  return false;
+}
+function marcarVisita() {
+  try { localStorage.setItem(CHAVE_VISITA, String(Date.now())); return; } catch {}
+  try { sessionStorage.setItem(CHAVE_VISITA, "1"); } catch {}
+}
 async function contarVisita() {
   if (!URL_CONTADOR) return;
-  let nova = true;
-  try { nova = !sessionStorage.getItem("visita-contada"); } catch {}
+  const nova = !visitaJaContada();
   try {
     const resp = await fetch(`${URL_CONTADOR}?acao=${nova ? "somar" : "ler"}`);
     const dados = await resp.json();
@@ -605,7 +617,7 @@ async function contarVisita() {
       ? "<strong>1</strong> pessoa viu esta página"
       : `<strong>${inteiro.format(dados.total)}</strong> pessoas viram esta página`;
     $("visitas").hidden = false;
-    if (nova) { try { sessionStorage.setItem("visita-contada", "1"); } catch {} }
+    if (nova) marcarVisita();
   } catch {}
 }
 
