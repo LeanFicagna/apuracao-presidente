@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Apuração Presidente 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: placar de noite de eleição. Barra de seções no topo, duelo dos candidatos, números de comparecimento e tabela por estado. */
+:root {
+  --bg: #f3f1ea;          /* bege do corpo da urna */
+  --surface: #fbfaf6;
+  --ink: #1b1d1f;
+  --muted: #62645f;
+  --line: #d9d5c8;
+  --track: #e6e2d6;
+  --cand-a: #1f5f8b;
+  --cand-b: #c27410;
+  --neutral-bar: #8e8b80;
+  --live: #1e8a3e;        /* tecla CONFIRMA */
+  --wait: #b5651d;        /* tecla CORRIGE */
+  --error: #b3261e;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #15171a; --surface: #1d2024; --ink: #ecebe6; --muted: #a2a39d;
+    --line: #33373c; --track: #2a2e33; --cand-a: #5ea3d6; --cand-b: #e39a3b;
+    --neutral-bar: #6f7176; --live: #46b968; --wait: #e08b44; --error: #f2817a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #15171a; --surface: #1d2024; --ink: #ecebe6; --muted: #a2a39d;
+  --line: #33373c; --track: #2a2e33; --cand-a: #5ea3d6; --cand-b: #e39a3b;
+  --neutral-bar: #6f7176; --live: #46b968; --wait: #e08b44; --error: #f2817a;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.5 var(--font-body);
+}
+.wrap {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding-block: 24px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid;
+  gap: 28px;
+}
+.wrap > * { min-width: 0; }
+.num { font-variant-numeric: tabular-nums; }
+.label {
+  font: 500 12px/1.2 var(--font-body);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+
+/* Cabeçalho */
+header { display: flex; flex-wrap: wrap; gap: 16px; align-items: end; justify-content: space-between; }
+h1 {
+  margin: 0;
+  font: 700 clamp(34px, 6vw, 52px)/0.95 var(--font-display);
+  letter-spacing: -.01em;
+  text-wrap: balance;
+}
+h1 small { display: block; font: 500 14px/1.4 var(--font-body); color: var(--muted); letter-spacing: 0; margin-top: 6px; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.turnos { display: inline-flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.turnos button {
+  font: 600 14px var(--font-body);
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  padding: 8px 14px;
+  cursor: pointer;
+}
+.turnos button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.turnos button:focus-visible, .sort:focus-visible { outline: 2px solid var(--cand-a); outline-offset: 2px; }
+.status {
+  display: inline-flex; align-items: center; gap: 8px;
+  font: 600 13px var(--font-body);
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid currentColor;
+}
+.status::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+.status.live { color: var(--live); }
+.status.live::before { animation: pulse 1.6s ease-in-out infinite; }
+.status.wait { color: var(--wait); }
+.status.final { color: var(--ink); }
+.status.error { color: var(--error); }
+@keyframes pulse { 50% { opacity: .25; } }
+
+/* Barra de seções */
+.apurado { display: grid; gap: 10px; }
+.apurado-top { display: flex; flex-wrap: wrap; gap: 8px 24px; align-items: baseline; justify-content: space-between; }
+.apurado-pct { font: 700 clamp(40px, 8vw, 64px)/1 var(--font-display); }
+.apurado-pct span { font-size: .45em; color: var(--muted); font-weight: 600; margin-left: 6px; }
+.meta { color: var(--muted); font-size: 13px; }
+.meta strong { color: var(--ink); font-weight: 500; }
+.progress {
+  position: relative; height: 14px; border-radius: 3px;
+  background: var(--track); overflow: hidden;
+}
+.progress > i { position: absolute; inset: 0 auto 0 0; background: var(--ink); transition: width .8s ease; }
+.ticks { display: flex; justify-content: space-between; font: 400 11px var(--font-mono); color: var(--muted); }
+
+/* Duelo (2º turno) */
+.duelo { display: grid; gap: 18px; }
+.duelo-cands { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.cand { display: flex; gap: 16px; align-items: center; min-width: 0; }
+.cand.b { flex-direction: row-reverse; text-align: right; }
+.foto {
+  flex: none; width: 88px; height: 110px; border-radius: 4px; overflow: hidden;
+  background: var(--track); display: grid; place-items: center;
+  font: 700 28px var(--font-display); color: var(--muted);
+  border-bottom: 4px solid var(--c);
+}
+.foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cand-info { min-width: 0; display: grid; gap: 2px; }
+.cand-num { font: 500 13px var(--font-mono); color: var(--muted); }
+.cand-nome { font: 700 clamp(20px, 3.4vw, 30px)/1.05 var(--font-display); text-transform: uppercase; overflow-wrap: anywhere; }
+.cand-pct { font: 700 clamp(44px, 9vw, 76px)/0.95 var(--font-display); color: var(--c); }
+.cand-votos { font-size: 14px; color: var(--muted); }
+.cand-vice { font-size: 12px; color: var(--muted); }
+.cabo { position: relative; height: 34px; display: flex; border-radius: 3px; overflow: hidden; background: var(--track); }
+.cabo > i { display: block; height: 100%; transition: width .8s ease; }
+.cabo .meio { position: absolute; left: 50%; top: -6px; bottom: -6px; width: 2px; background: var(--ink); transform: translateX(-1px); }
+.cabo-legenda { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.cabo-legenda strong { color: var(--ink); font-weight: 600; }
+
+/* Lista (1º turno) */
+.ranking { display: grid; gap: 12px; }
+.linha { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; }
+.linha .foto { width: 52px; height: 64px; font-size: 18px; grid-row: span 2; border-bottom-width: 3px; }
+.linha-nome { font: 600 20px/1.1 var(--font-display); text-transform: uppercase; overflow-wrap: anywhere; }
+.linha-nome small { font: 400 12px var(--font-body); color: var(--muted); text-transform: none; margin-left: 6px; }
+.linha-pct { font: 700 26px/1 var(--font-display); text-align: right; }
+.linha-bar { grid-column: 2 / 4; height: 8px; background: var(--track); border-radius: 2px; overflow: hidden; }
+.linha-bar i { display: block; height: 100%; background: var(--c); transition: width .8s ease; }
+.linha-votos { grid-column: 2 / 4; font-size: 12px; color: var(--muted); margin-top: -2px; }
+.chip {
+  display: inline-block; font: 600 11px var(--font-body); text-transform: uppercase; letter-spacing: .06em;
+  padding: 2px 7px; border-radius: 3px; border: 1px solid var(--line); color: var(--muted); vertical-align: middle; margin-left: 8px;
+}
+.chip.ok { border-color: var(--live); color: var(--live); }
+
+/* Números gerais */
+.numeros { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.numeros > div { padding: 14px 16px; display: grid; gap: 4px; }
+.numeros > div + div { border-left: 1px solid var(--line); }
+.numeros b { font: 600 26px/1 var(--font-display); }
+.numeros span.meta { font-size: 12px; }
+
+/* Estados */
+section h2 { margin: 0 0 12px; font: 700 26px/1 var(--font-display); }
+.estados-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px 16px; }
+.sort { font: 500 13px var(--font-body); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; }
+.tabela-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; min-width: 560px; font-size: 14px; }
+th { text-align: left; font: 500 11px var(--font-body); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); padding: 8px 10px; border-bottom: 1px solid var(--line); }
+td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+td.uf { font-weight: 600; white-space: nowrap; }
+td.uf small { color: var(--muted); font-weight: 400; margin-left: 6px; }
+td.r, th.r { text-align: right; }
+.mini { display: flex; height: 10px; border-radius: 2px; overflow: hidden; background: var(--track); min-width: 140px; }
+.mini i { display: block; height: 100%; }
+.lider { display: inline-flex; align-items: center; gap: 6px; font-weight: 500; white-space: nowrap; }
+.lider::before { content: ""; width: 9px; height: 9px; border-radius: 2px; background: var(--c); }
+.vazio { color: var(--muted); }
+
+.aviso {
+  background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--wait);
+  padding: 12px 16px; border-radius: 4px; font-size: 14px;
+}
+.aviso.erro { border-left-color: var(--error); }
+footer { color: var(--muted); font-size: 13px; display: grid; gap: 4px; border-top: 1px solid var(--line); padding-top: 16px; }
+footer a { color: inherit; }
+
+@media (max-width: 640px) {
+  .duelo-cands { grid-template-columns: 1fr; }
+  .cand.b { flex-direction: row; text-align: left; }
+  .foto { width: 70px; height: 88px; }
+  .numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .numeros > div:nth-child(3) { border-left: 0; }
+  .numeros > div:nth-child(n+3) { border-top: 1px solid var(--line); }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Apuração Presidente 2026
+      <small>Eleições gerais · dados oficiais do Tribunal Superior Eleitoral</small>
+    </h1>
+    <div class="controls">
+      <div class="turnos" role="group" aria-label="Turno">
+        <button id="t1" type="button" data-turno="1" aria-pressed="false">1º turno</button>
+        <button id="t2" type="button" data-turno="2" aria-pressed="true">2º turno</button>
+      </div>
+      <span id="status" class="status wait">Carregando</span>
+    </div>
+  </header>
+
+  <div id="aviso" class="aviso" hidden></div>
+
+  <section class="apurado" aria-label="Seções totalizadas">
+    <div class="apurado-top">
+      <div>
+        <div class="label">Seções totalizadas</div>
+        <div class="apurado-pct num" id="pct-secoes">–</div>
+      </div>
+      <div class="meta" id="atualizado">Buscando dados do TSE…</div>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="barra-secoes" style="width:0"></i></div>
+    <div class="ticks" aria-hidden="true"><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div>
+  </section>
+
+  <section id="placar" aria-live="polite"></section>
+
+  <section class="numeros" aria-label="Comparecimento e votos">
+    <div><span class="label">Comparecimento</span><b class="num" id="n-comp">–</b><span class="meta num" id="n-comp-p"></span></div>
+    <div><span class="label">Abstenção</span><b class="num" id="n-abst">–</b><span class="meta num" id="n-abst-p"></span></div>
+    <div><span class="label">Brancos</span><b class="num" id="n-branco">–</b><span class="meta num" id="n-branco-p"></span></div>
+    <div><span class="label">Nulos</span><b class="num" id="n-nulo">–</b><span class="meta num" id="n-nulo-p"></span></div>
+  </section>
+
+  <section>
+    <div class="estados-head">
+      <h2>Por estado</h2>
+      <label class="meta">Ordenar por
+        <select id="ordem" class="sort">
+          <option value="eleitorado">maior eleitorado</option>
+          <option value="nome">nome do estado</option>
+          <option value="apurado">mais apurado</option>
+        </select>
+      </label>
+    </div>
+    <div class="tabela-wrap">
+      <table>
+        <thead><tr><th>Estado</th><th class="r">Apurado</th><th>Divisão dos votos válidos</th><th>Lidera</th></tr></thead>
+        <tbody id="estados"><tr><td colspan="4" class="vazio">Carregando estados…</td></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <footer>
+    <span>Este site só exibe a apuração. A contagem e a totalização são feitas pela Justiça Eleitoral; os números vêm dos arquivos públicos do <a href="https://resultados.tse.jus.br/oficial/app/index.html" target="_blank" rel="noopener">Sistema Resultados do TSE</a>.</span>
+    <span>Percentuais calculados sobre os votos válidos, como faz o TSE. Atualiza sozinho a cada 15 segundos.</span>
+  </footer>
+</div>
+
+<script>
+const BASE = "https://resultados.tse.jus.br/oficial/ele2026";
+const ELEICOES = { 1: "6257", 2: "6258" };
+const INTERVALO_MS = 15000;
+const UFS = [
+  ["ac","Acre"],["al","Alagoas"],["ap","Amapá"],["am","Amazonas"],["ba","Bahia"],["ce","Ceará"],
+  ["df","Distrito Federal"],["es","Espírito Santo"],["go","Goiás"],["ma","Maranhão"],["mt","Mato Grosso"],
+  ["ms","Mato Grosso do Sul"],["mg","Minas Gerais"],["pa","Pará"],["pb","Paraíba"],["pr","Paraná"],
+  ["pe","Pernambuco"],["pi","Piauí"],["rj","Rio de Janeiro"],["rn","Rio Grande do Norte"],
+  ["rs","Rio Grande do Sul"],["ro","Rondônia"],["rr","Roraima"],["sc","Santa Catarina"],["sp","São Paulo"],
+  ["se","Sergipe"],["to","Tocantins"],["zz","Exterior"]
+];
+
+const inteiro = new Intl.NumberFormat("pt-BR");
+const decimal = new Intl.NumberFormat("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const pct = (v) => decimal.format(v) + "%";
+// O TSE manda números como texto: "56104503" ou "47,03".
+const numero = (s) => Number(String(s ?? "0").replace(",", ".")) || 0;
+const $ = (id) => document.getElementById(id);
+
+let turno = 2;
+let nacional = null;
+let estados = {};
+let ciclo = 0;
+let timer = null;
+
+function urlDados(uf, eleicao) {
+  return `${BASE}/${eleicao}/dados/${uf}/${uf}-c0001-e${eleicao.padStart(6, "0")}-u.json`;
+}
+function urlFoto(sqcand, eleicao) {
+  return `${BASE}/${eleicao}/fotos/br/${sqcand}.jpeg`;
+}
+
+async function buscar(uf) {
+  const resp = await fetch(urlDados(uf, ELEICOES[turno]), { cache: "no-cache" });
+  if (!resp.ok) throw new Error(`TSE respondeu ${resp.status} para ${uf.toUpperCase()}`);
+  return interpretar(await resp.json());
+}
+
+function interpretar(d) {
+  const cargo = d.carg[0];
+  const candidatos = [];
+  for (const agr of cargo.agr) {
+    for (const par of agr.par) {
+      for (const c of par.cand) {
+        candidatos.push({
+          numero: c.n,
+          sq: c.sqcand,
+          nome: c.nmu,
+          partido: par.sg,
+          vice: c.vs && c.vs[0] ? c.vs[0].nmu : "",
+          votos: numero(c.vap),
+          situacao: c.st || ""
+        });
+      }
+    }
+  }
+  const validos = numero(d.v.vv);
+  for (const c of candidatos) c.pct = validos > 0 ? (c.votos / validos) * 100 : 0;
+  candidatos.sort((a, b) => b.votos - a.votos || a.nome.localeCompare(b.nome));
+  return {
+    geradoEm: `${d.dg} às ${d.hg}`,
+    final: d.tf === "s",
+    secoesTotal: numero(d.s.ts),
+    secoesTotalizadas: numero(d.s.st),
+    pctSecoes: numero(d.s.pstn ?? d.s.pst),
+    eleitorado: numero(d.e.te),
+    comparecimento: numero(d.e.c),
+    pctComparecimento: numero(d.e.pcn ?? d.e.pc),
+    abstencao: numero(d.e.a),
+    pctAbstencao: numero(d.e.pan ?? d.e.pa),
+    validos,
+    brancos: numero(d.v.vb),
+    pctBrancos: numero(d.v.pvbn ?? d.v.pvb),
+    nulos: numero(d.v.tvn),
+    pctNulos: numero(d.v.ptvnn ?? d.v.ptvn),
+    candidatos
+  };
+}
+
+function corDe(posicao) {
+  if (posicao === 0) return "var(--cand-a)";
+  if (posicao === 1) return "var(--cand-b)";
+  return "var(--neutral-bar)";
+}
+// No 2º turno a cor acompanha o candidato (número), não a posição, para não trocar quando um ultrapassa o outro.
+function mapaCores(dados) {
+  const ordem = [...dados.candidatos];
+  if (turno === 2) ordem.sort((a, b) => a.numero.localeCompare(b.numero));
+  const mapa = {};
+  ordem.forEach((c, i) => { mapa[c.numero] = corDe(i); });
+  return mapa;
+}
+
+function iniciais(nome) {
+  return nome.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]).join("");
+}
+function fotoHtml(c, cor) {
+  return `<div class="foto" style="--c:${cor}"><img src="${urlFoto(c.sq, ELEICOES[turno])}" alt="Foto de ${c.nome}" loading="lazy" onerror="this.replaceWith(document.createTextNode('${iniciais(c.nome)}'))"></div>`;
+}
+
+function renderNacional() {
+  const d = nacional;
+  const status = $("status");
+  if (d.final) { status.className = "status final"; status.textContent = "Totalização encerrada"; }
+  else if (d.secoesTotalizadas > 0) { status.className = "status live"; status.textContent = "Ao vivo"; }
+  else { status.className = "status wait"; status.textContent = "Aguardando início"; }
+
+  $("pct-secoes").innerHTML = `${pct(d.pctSecoes)}<span>${inteiro.format(d.secoesTotalizadas)} de ${inteiro.format(d.secoesTotal)}</span>`;
+  $("barra-secoes").style.width = d.pctSecoes + "%";
+  $("atualizado").innerHTML = `Arquivo do TSE gerado em <strong>${d.geradoEm}</strong> · conferido às ${new Date().toLocaleTimeString("pt-BR")}`;
+
+  $("n-comp").textContent = inteiro.format(d.comparecimento);
+  $("n-comp-p").textContent = d.comparecimento ? pct(d.pctComparecimento) + " do eleitorado apurado" : `eleitorado: ${inteiro.format(d.eleitorado)}`;
+  $("n-abst").textContent = inteiro.format(d.abstencao);
+  $("n-abst-p").textContent = d.abstencao ? pct(d.pctAbstencao) : "";
+  $("n-branco").textContent = inteiro.format(d.brancos);
+  $("n-branco-p").textContent = d.brancos ? pct(d.pctBrancos) + " dos votos" : "";
+  $("n-nulo").textContent = inteiro.format(d.nulos);
+  $("n-nulo-p").textContent = d.nulos ? pct(d.pctNulos) + " dos votos" : "";
+
+  const cores = mapaCores(d);
+  const placar = $("placar");
+  if (turno === 2 && d.candidatos.length === 2) {
+    const [a, b] = [...d.candidatos].sort((x, y) => x.numero.localeCompare(y.numero));
+    const diferenca = Math.abs(a.votos - b.votos);
+    const frente = a.votos === b.votos ? null : (a.votos > b.votos ? a : b);
+    const larguraA = d.validos ? a.pct : 50;
+    placar.innerHTML = `
+      <div class="duelo">
+        <div class="duelo-cands">
+          ${cartao(a, cores[a.numero], "a")}
+          ${cartao(b, cores[b.numero], "b")}
+        </div>
+        <div class="cabo" role="img" aria-label="${a.nome} ${pct(a.pct)}, ${b.nome} ${pct(b.pct)}">
+          <i style="width:${larguraA}%;background:${cores[a.numero]}"></i>
+          <i style="width:${100 - larguraA}%;background:${cores[b.numero]};${d.validos ? "" : "opacity:.35"}"></i>
+          <span class="meio"></span>
+        </div>
+        <div class="cabo-legenda">
+          <span>Linha central = 50% dos votos válidos</span>
+          <span>${frente ? `<strong>${frente.nome}</strong> à frente por <strong class="num">${inteiro.format(diferenca)}</strong> votos` : "Empate"}</span>
+        </div>
+      </div>`;
+  } else {
+    placar.innerHTML = `<div class="ranking">${d.candidatos.map((c) => `
+      <div class="linha" style="--c:${cores[c.numero]}">
+        ${fotoHtml(c, cores[c.numero])}
+        <div class="linha-nome">${c.nome}<small>${c.numero} · ${c.partido}</small>${situacaoChip(c)}</div>
+        <div class="linha-pct num">${pct(c.pct)}</div>
+        <div class="linha-bar"><i style="width:${c.pct}%"></i></div>
+        <div class="linha-votos num">${inteiro.format(c.votos)} votos</div>
+      </div>`).join("")}</div>`;
+  }
+}
+
+function situacaoChip(c) {
+  if (!c.situacao) return "";
+  const ok = /eleito|turno/i.test(c.situacao) && !/não/i.test(c.situacao);
+  return `<span class="chip${ok ? " ok" : ""}">${c.situacao}</span>`;
+}
+
+function cartao(c, cor, lado) {
+  return `
+    <div class="cand ${lado}" style="--c:${cor}">
+      ${fotoHtml(c, cor)}
+      <div class="cand-info">
+        <span class="cand-num">${c.numero} · ${c.partido}</span>
+        <span class="cand-nome">${c.nome}${situacaoChip(c)}</span>
+        <span class="cand-pct num">${pct(c.pct)}</span>
+        <span class="cand-votos num">${inteiro.format(c.votos)} votos</span>
+        ${c.vice ? `<span class="cand-vice">Vice: ${c.vice}</span>` : ""}
+      </div>
+    </div>`;
+}
+
+function renderEstados() {
+  if (!nacional) return;
+  const cores = mapaCores(nacional);
+  const destaque = turno === 2
+    ? [...nacional.candidatos].sort((a, b) => a.numero.localeCompare(b.numero)).map((c) => c.numero)
+    : nacional.candidatos.slice(0, 2).map((c) => c.numero);
+  const ordem = $("ordem").value;
+  const linhas = UFS.map(([uf, nome]) => ({ uf, nome, d: estados[uf] }));
+  linhas.sort((x, y) => {
+    if (x.uf === "zz") return 1;
+    if (y.uf === "zz") return -1;
+    if (ordem === "nome") return x.nome.localeCompare(y.nome);
+    if (ordem === "apurado") return (y.d?.pctSecoes ?? -1) - (x.d?.pctSecoes ?? -1);
+    return (y.d?.eleitorado ?? 0) - (x.d?.eleitorado ?? 0);
+  });
+  $("estados").innerHTML = linhas.map(({ uf, nome, d }) => {
+    if (!d) return `<tr><td class="uf">${uf.toUpperCase()}<small>${nome}</small></td><td colspan="3" class="vazio">sem dados ainda</td></tr>`;
+    const porNumero = Object.fromEntries(d.candidatos.map((c) => [c.numero, c]));
+    let resto = 100;
+    const fatias = destaque.map((n) => {
+      const p = porNumero[n]?.pct ?? 0;
+      resto -= p;
+      return `<i style="width:${p}%;background:${cores[n]}" title="${porNumero[n]?.nome ?? ""} ${pct(p)}"></i>`;
+    }).join("") + (turno === 1 && d.validos ? `<i style="width:${Math.max(resto, 0)}%;background:var(--neutral-bar)" title="Demais candidatos"></i>` : "");
+    const lider = d.validos ? d.candidatos[0] : null;
+    return `<tr>
+      <td class="uf">${uf.toUpperCase()}<small>${nome}</small></td>
+      <td class="r num">${pct(d.pctSecoes)}</td>
+      <td><div class="mini">${fatias}</div></td>
+      <td>${lider ? `<span class="lider" style="--c:${cores[lider.numero]}">${lider.nome} <span class="num meta">${pct(lider.pct)}</span></span>` : '<span class="vazio">–</span>'}</td>
+    </tr>`;
+  }).join("");
+}
+
+function mostrarAviso(texto, erro) {
+  const aviso = $("aviso");
+  aviso.hidden = !texto;
+  aviso.className = "aviso" + (erro ? " erro" : "");
+  aviso.textContent = texto || "";
+}
+
+async function atualizar() {
+  clearTimeout(timer);
+  const turnoPedido = turno;
+  try {
+    const d = await buscar("br");
+    if (turnoPedido !== turno) return;
+    nacional = d;
+    renderNacional();
+    mostrarAviso(d.secoesTotalizadas === 0 && !d.final
+      ? "A apuração ainda não começou. O TSE libera os primeiros números depois que as urnas fecham, às 17h (horário de Brasília). A página vai se atualizar sozinha."
+      : "");
+    // Estados a cada duas rodadas (e sempre na primeira), para não pesar.
+    if (ciclo % 2 === 0 || Object.keys(estados).length === 0) {
+      const resultados = await Promise.allSettled(UFS.map(([uf]) => buscar(uf)));
+      if (turnoPedido !== turno) return;
+      resultados.forEach((r, i) => { if (r.status === "fulfilled") estados[UFS[i][0]] = r.value; });
+    }
+    renderEstados();
+  } catch (err) {
+    if (turnoPedido !== turno) return;
+    $("status").className = "status error";
+    $("status").textContent = "Sem conexão";
+    mostrarAviso(`Não consegui buscar os dados do TSE (${err.message}). Tentando de novo em 15 segundos.`, true);
+  } finally {
+    if (turnoPedido === turno) {
+      ciclo++;
+      // Depois da totalização final os números não mudam mais.
+      if (!nacional?.final) timer = setTimeout(atualizar, INTERVALO_MS);
+    }
+  }
+}
+
+function trocarTurno(novo) {
+  if (novo === turno) return;
+  turno = novo;
+  nacional = null;
+  estados = {};
+  ciclo = 0;
+  document.querySelectorAll(".turnos button").forEach((b) => b.setAttribute("aria-pressed", String(Number(b.dataset.turno) === turno)));
+  $("placar").innerHTML = "";
+  $("estados").innerHTML = '<tr><td colspan="4" class="vazio">Carregando estados…</td></tr>';
+  $("status").className = "status wait";
+  $("status").textContent = "Carregando";
+  atualizar();
+}
+
+document.querySelectorAll(".turnos button").forEach((b) => b.addEventListener("click", () => trocarTurno(Number(b.dataset.turno))));
+$("ordem").addEventListener("change", renderEstados);
+atualizar();
+</script>
+</body>
+</html>
