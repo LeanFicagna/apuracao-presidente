@@ -19,8 +19,8 @@
   --track: #e6e2d6;
   --lula: #d0242a;        /* vermelho, barras e fundos */
   --lula-ink: #b51f24;    /* vermelho para texto */
-  --flavio: #f2c200;      /* amarelo, barras e fundos */
-  --flavio-ink: #8f6c00;  /* amarelo escurecido para texto legível no fundo claro */
+  --flavio: #1f5fbf;      /* azul, barras e fundos */
+  --flavio-ink: #1a52a6;  /* azul para texto */
   --neutral-bar: #8e8b80;
   --live: #1e8a3e;        /* tecla CONFIRMA */
   --wait: #b5651d;        /* tecla CORRIGE */
@@ -33,14 +33,14 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #15171a; --surface: #1d2024; --ink: #ecebe6; --muted: #a2a39d;
-    --line: #33373c; --track: #2a2e33; --lula: #e0393e; --lula-ink: #f26a6e; --flavio: #f5c518; --flavio-ink: #f5c518;
+    --line: #33373c; --track: #2a2e33; --lula: #e0393e; --lula-ink: #f26a6e; --flavio: #4a8fe7; --flavio-ink: #6aa6f0;
     --neutral-bar: #6f7176; --live: #46b968; --wait: #e08b44; --error: #f2817a;
     color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #15171a; --surface: #1d2024; --ink: #ecebe6; --muted: #a2a39d;
-  --line: #33373c; --track: #2a2e33; --lula: #e0393e; --lula-ink: #f26a6e; --flavio: #f5c518; --flavio-ink: #f5c518;
+  --line: #33373c; --track: #2a2e33; --lula: #e0393e; --lula-ink: #f26a6e; --flavio: #4a8fe7; --flavio-ink: #6aa6f0;
   --neutral-bar: #6f7176; --live: #46b968; --wait: #e08b44; --error: #f2817a;
   color-scheme: dark;
 }
@@ -347,7 +347,7 @@ function interpretar(d) {
   };
 }
 
-// Cor fixa por número de candidato: Lula (13) vermelho, Flávio (22) amarelo. Os demais ficam em cinza.
+// Cor fixa por número de candidato: Lula (13) vermelho, Flávio (22) azul. Os demais ficam em cinza.
 const CORES_CANDIDATO = {
   "13": { fill: "var(--lula)", ink: "var(--lula-ink)" },
   "22": { fill: "var(--flavio)", ink: "var(--flavio-ink)" }
